@@ -1,26 +1,104 @@
 import streamlit as st
-from chatbot import get_response
+import pandas as pd
+from chatbot import get_response,train_model
 
 st.set_page_config(page_title="AI Chatbot", layout="wide")
 
-# --- STYLE ---
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "assistant", "content": "👋 Hello! Ask me anything about our services."}
+    ]
+
+st.markdown("""
+<div style='
+    background: linear-gradient(135deg, #1e293b, #2563eb);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    color: white;
+    margin-bottom: 20px;
+'>
+    <h1 style='margin-bottom:10px;'>🤖 AI Customer Support</h1>
+    <p style='opacity:0.9;'>Automate customer support instantly</p>
+    <p style='color:#22c55e;'>● Online • Ready</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("<h3 style='color:#0f172a;'>📂 Upload Your Business FAQ</h3>", unsafe_allow_html=True)
+
+uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+
+    if "question" not in df.columns or "answer" not in df.columns:
+        st.error("CSV must contain 'question' and 'answer' columns")
+    else:
+        vectorizer, X = train_model(df)
+
+        st.session_state.df = df
+        st.session_state.vectorizer = vectorizer
+        st.session_state.X = X
+
+        st.success("✅ Chatbot trained on your data!")
+
+
+df = st.session_state.get("df")
+vectorizer = st.session_state.get("vectorizer")
+X = st.session_state.get("X")
+
 st.markdown("""
 <style>
+
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
+}
+
+.block-container {
+    background: #f8fafc;
+    border-radius: 20px;
+    padding: 2rem;
+    margin-top: 20px;
+}
+
+[data-testid="stFileUploader"] {
+    color: #0f172a;
+}
+
+[data-testid="stFileUploader"] label {
+    color: #0f172a ;
+}
+
+[data-testid="stFileUploader"] div {
+    color: #0f172a;
+}
+
+[data-testid="stFileUploader"] button {
+    color: white ;
+    background-color: #2563eb;
+    border-radius: 8px;
+}
+
+
+[data-testid="stFileUploader"] button:hover {
+    background-color: #1d4ed8;
+}
+
+
 .block-container {
     max-width: 800px;
     margin: auto;
     padding-top: 2rem;
 }
 
-[data-testid="stAppViewContainer"] {
-    background-color: #f8fafc;
-}
 
 .chat-card {
-    background: white;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
     padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: white;
 }
 
 
@@ -28,79 +106,116 @@ st.markdown("""
     background: #2563eb;
     color: white;
     padding: 12px 16px;
-    border-radius: 12px;
+    border-radius: 14px;
     margin: 8px 0;
-    text-align: right;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    max-width: 60%;
 }
+
 
 .bot-msg {
-    background: white;
-    color: black;
+    background: #f1f5f9;
+    color: #0f172a;
     padding: 12px 16px;
-    border-radius: 12px;
+    border-radius: 14px;
     margin: 8px 0;
-    text-align: left;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    max-width: 60%;
 }
 
-.title {
-    text-align: center;
-    font-size: 36px;
-    font-weight: 700;
-}
 
-.subtitle {
-    text-align: center;
-    color: gray;
-    margin-bottom: 10px;
-}
 .stButton > button {
-    background-color: #1e293b;
+    background-color: #2563eb;
     color: white;
     border-radius: 10px;
     padding: 8px 16px;
     border: none;
-    transition: 0.3s;
+    font-weight: 500;
 }
-            
+
 .stButton > button:hover {
-    background-color: #334155;
-    color: white;
+    background-color: #1d4ed8;
 }
-            
-.stButton > button:active {
-    background-color: #0f172a;
-    color: white;
+
+
+textarea, input {
+    border-radius: 10px !important;
+    border: 1px solid #e2e8f0 !important;
 }
-            
+
+
+.quick-box {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+
+.title {
+    text-align: center;
+    font-size: 34px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+
+.subtitle {
+    text-align: center;
+    color: #64748b;
+}
+
+
+.status {
+    text-align: center;
+    color: #22c55e;
+    font-weight: 500;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER ---
-st.markdown("""
-<h1 style='text-align:center;'>🤖 Smart Business Chatbot</h1>
-<p style='text-align:center; color:gray;'>Automate customer support instantly</p>
-<p style='text-align:center; color:#22c55e;'>● Online • Ready</p>
-""", unsafe_allow_html=True)
 
-# --- ONLINE STATUS ---
+
+
 st.markdown("<p style='text-align:center; color:#22c55e;'>● Online • Ready to assist</p>", unsafe_allow_html=True)
 
-st.markdown("### 💡 Try asking:")
-col1, col2, col3 = st.columns(3)
+st.markdown("""
+<div style='
+    background:#e2e8f0;
+    padding:15px;
+    border-radius:12px;
+    text-align:center;
+    margin-bottom: 10px;
+    font-weight:500;
+    color:#0f172a;
+'>
+💡 Quick Questions
+</div>
+""", unsafe_allow_html=True)
+
+
+col1, col2, col3 = st.columns(3, gap = "large")
 
 if col1.button("Pricing"):
     question = "What are your pricing plans?"
     st.session_state.messages.append({"role": "user", "content": question})
-    response = get_response(question)
+    if df is not None:
+        response = get_response(question, df, vectorizer, X)
+    else:
+        response = "Please upload a CSV file first."
+
     st.session_state.messages.append({"role": "assistant", "content": response})
     st.rerun()
     
 if col2.button("Services"):
     question = "What services do you offer?"
     st.session_state.messages.append({"role": "user", "content": question})
-    response = get_response(question)
+    if df is not None:
+        response = get_response(question, df, vectorizer, X)
+    else:
+        response = "Please upload a CSV file first."
     st.session_state.messages.append({"role": "assistant", "content": response})
     
     st.rerun()
@@ -108,19 +223,17 @@ if col2.button("Services"):
 if col3.button("Support"):
     question = "How can I contact support?"
     st.session_state.messages.append({"role": "user", "content": question})
-    response = get_response(question)
+    if df is not None:
+        response = get_response(question, df, vectorizer, X)
+    else:
+        response = "Please upload a CSV file first."
     st.session_state.messages.append({"role": "assistant", "content": response})
     
     st.rerun()
 
 
-# --- SESSION ---
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "👋 Hello! Ask me anything about our services."}
-    ]
 
-# --- CHAT UI ---
+
 st.markdown("<div class='chat-card'>", unsafe_allow_html=True)
 
 for msg in st.session_state.messages:
@@ -140,19 +253,22 @@ for msg in st.session_state.messages:
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# --- INPUT ---
+
 user_input = st.chat_input("Ask about pricing, services, or support...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
 
     with st.spinner("Thinking..."):
-        response = get_response(user_input)
+        if df is not None:
+            response = get_response(user_input, df, vectorizer, X)
+        else:
+            response = "Please upload a CSV file first."
 
     st.session_state.messages.append({"role": "assistant", "content": response})
     st.rerun()
 
-# --- FOOTER ---
+
 st.markdown("""
 <p style='text-align:center; color:gray; font-size:12px;'>
 Powered by AI • Built with Machine Learning

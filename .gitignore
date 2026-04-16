@@ -1,0 +1,13 @@
+# Mac files
+.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+env/
+venv/
+
+# Model files (optional if large)
+*.pkl
